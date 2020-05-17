@@ -10,12 +10,9 @@ const outputPath = path.join(OUTPUT_DIR, "team.html");
 
 const render = require("./lib/htmlRenderer");
 
-// const util = require("util");
-// const getManagerInfo = util.promisify(gatherManagerInfo());
-
 const teamRoster = [];
 
-function gatherManagerInfo(){
+function gatherTeamInfo(){
     return inquirer.prompt([
         {
           type: "input",
@@ -25,7 +22,7 @@ function gatherManagerInfo(){
         {
           type: "input",
           name: "id",
-          message: "Enter manager is: "
+          message: "Enter manager id: "
         },
         {
           type: "input",
@@ -37,7 +34,14 @@ function gatherManagerInfo(){
           name: "officeNumber",
           message: "Enter manager office number: "
         }
-      ])
+      ]).then(function(answers) {
+        
+        teamManager = new Manager(answers.name, answers.id, answers.email, answers.officeNumber)
+    
+        teamRoster.push(teamManager);
+        // console.log(teamRoster);
+        gatherEngineerInfo();
+      });
 }
 
 function gatherEngineerInfo(){
@@ -61,8 +65,27 @@ function gatherEngineerInfo(){
           type: "input",
           name: "github",
           message: "Enter engineer github: "
+        },
+        {
+          type: "list",
+          name: "repeat",
+          message: "Would you like to enter another engineer? ",
+          choices: ["Yes","No"]
         }
-      ])
+      ]).then(function(answers) {
+        
+        teamEngineer = new Engineer(answers.name, answers.id, answers.email, answers.github)
+    
+        teamRoster.push(teamEngineer);
+        // console.log(teamRoster);
+
+        if (answers.repeat == "Yes"){
+          gatherEngineerInfo();
+        }else{
+          gatherInternInfo();
+        }
+    
+      })
 }
 
 function gatherInternInfo(){
@@ -84,54 +107,79 @@ function gatherInternInfo(){
         },
         {
           type: "input",
-          name: "github",
+          name: "school",
           message: "Enter intern school: "
+        },
+        {
+          type: "list",
+          name: "repeat",
+          message: "Would you like to enter another intern? ",
+          choices: ["Yes","No"]
         }
       ]).then(function(answers) {
         
-        teamEngineer = new Intern(answers.name, answers.id, answers.email, answers.github)
+        teamIntern = new Intern(answers.name, answers.id, answers.email, answers.school)
     
-        teamRoster.push(teamEngineer);
-        console.log(teamRoster);
+        teamRoster.push(teamIntern);
+        // console.log(teamRoster);
+
+        if (answers.repeat == "Yes"){
+          gatherInternInfo();
+        }else{
+          checkIfDirExists()
+          
+
+        }
+    
       })
 
 }
 
-gatherManagerInfo()
+function checkIfDirExists(){
 
-.then(function(answers) {
-        
-    teamManager = new Manager(answers.name, answers.id, answers.email, answers.officeNumber)
+  fs.access(OUTPUT_DIR, function(error) {
 
-    teamRoster.push(teamManager);
-    console.log(teamRoster);
-    
-    
-    gatherEngineerInfo()
-    
-    .then(function(answers) {
-        
-        teamEngineer = new Engineer(answers.name, answers.id, answers.email, answers.github)
-    
-        teamRoster.push(teamEngineer);
-        console.log(teamRoster);
+    if (error) {
+      console.log("Output directory does not exist :(");
+      console.log("Creating output directory...");
 
-        gatherInternInfo()
-    
-      })
+      fs.mkdirSync(OUTPUT_DIR, {
+        recursive: true,
+        mode: 0o77
+      });
 
-})
+      console.log("Output directory created!");
 
+    } else {
+      console.log("Output directory exists!")
+      
+    }
+      
+      writeFile();
+  })
+}
 
-  
+function writeFile(){
 
-// .then(function(){console.log()});
+  let html = render(teamRoster);
+      // console.log(html);
+  fs.writeFile(outputPath, html, function (err) {
+    if (err) return console.log(err);
+    console.log('Successfully wrote to file');
+  });
+}
+
 // Write code to use inquirer to gather information about the development team members,
 // and to create objects for each team member (using the correct classes as blueprints!)
+
+gatherTeamInfo()
+
 
 // After the user has input all employees desired, call the `render` function (required
 // above) and pass in an array containing all employee objects; the `render` function will
 // generate and return a block of HTML including templated divs for each employee!
+
+
 
 // After you have your html, you're now ready to create an HTML file using the HTML
 // returned from the `render` function. Now write it to a file named `team.html` in the
